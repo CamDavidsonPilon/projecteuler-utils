@@ -1,5 +1,5 @@
 # prime_numbers.py
-from utils import memoized
+from utils import  memoized
 import fractions
 from math import sqrt
 import numpy as np
