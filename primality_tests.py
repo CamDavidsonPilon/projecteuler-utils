@@ -1,6 +1,6 @@
 # miller_rabin primality test
 import random
-import math
+
 
 def signed_mod(a, n):
     return a % n - n

@@ -5,18 +5,6 @@ from math import sqrt
 import numpy as np
 
 
-def unordered_prime_generator():
-    # see https://en.wikipedia.org/wiki/Formula_for_primes
-    a = 7
-    n = 1
-    while True:
-        n += 1
-        b = a + fractions.gcd(n, a)
-        if b - a != 1:
-            yield b - a
-        a = b
-
-
 def eratosthenes(limit):
     # naive and slow, use primesfrom2to
     numbers_up_to_limit, still_valid = range(2, limit+1), [True]*(limit-1)
