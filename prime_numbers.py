@@ -1,8 +1,8 @@
 # prime_numbers.py
-from utils import  memoized
 import fractions
 from math import sqrt
 import numpy as np
+from collections import defaultdict
 
 
 def eratosthenes(limit):
@@ -41,16 +41,22 @@ def primesfrom2to(n):
     return np.r_[2, 3, ((3*np.nonzero(sieve)[0]+1) | 1)]
 
 
-@memoized
-def primal_decomposition(n):
-    """
-    given a number n, find its prime decomposition in the form
-    [(p1, k1), (p2, k2), ...]
-    Probably slow so don't use for large numbers (large > 50000)
-    """
+def primal_decomposition(n, prime_cache=None):
+
+    original_n = n
     output = []
-    primes = primesfrom2to(int(n/2) + 2)
+
+    if prime_cache is None:
+        primes = primesfrom2to(int(n/2) + 2)
+    else:
+        primes = prime_cache
+
     for p in primes:
+        # if using a prime cache, I can stop after int(n/2)
+        #if p > int(original_n/2)+1:
+        #    break
+        # nope, can't assume they are sorted
+
         count = 0
         while n % p == 0:
             count += 1
@@ -89,18 +95,34 @@ def all_prime_divisors(n):
             yield d
 
 
-def divisor_0(n):
-    decomp = primal_decomposition(n)
+def divisor_0(n, prime_cache=None):
+    decomp = primal_decomposition(n, prime_cache)
     return reduce(lambda x, y: x*y, map(lambda (p, a): a+1, decomp), 1)
 
 
-def divisor_k(n, k):
+def divisor_k(n, k, prime_cache=None):
     assert k > 0
+    if n == 1:
+        return 1
+    if n == 0:
+        return 0
     product = 1
-    decomp = primal_decomposition(n)
+    decomp = primal_decomposition(n, prime_cache)
     for p, a in decomp:
         product *= (p**(k*a + k) - 1) / (p**k-1)
     return product
+
+def divisor_k_lookup(up_to, k):
+    """
+    Creates a cache for looking up divisor_k.
+    Uses an efficient algorithm to create this. 
+    """
+    div = defaultdict(lambda: 0)
+    for i in xrange(1, up_to):
+        for j in xrange(i, up_to, i):
+            div[j] += i**k
+
+    return div
 
 
 def totient_function(n):
@@ -112,3 +134,4 @@ def totient_function(n):
 
 def coprime(m, n):
     return fractions.gcd(m, n) == 1
+

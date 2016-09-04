@@ -3,6 +3,7 @@ import functools
 import numpy as np
 from itertools import chain, combinations
 import math
+import random
 
 MILLION = 1000000
 BILLION = 1000000000
@@ -67,7 +68,12 @@ def digits(n):
     return map(int, str(n))
 
 
-def nCr(n,r):
+def nCr(n, r):
+    if r > n:
+        return 0
+    if r < 0 or n < 0:
+        return 0
+    
     f = math.factorial
     return f(n) / f(r) / f(n-r)
 
@@ -169,3 +175,15 @@ def infinite_product(iterx, itery):
         except StopIteration:
             break
 
+
+def random_choice_from_dist(a):
+    r = random.random()
+    a = np.array(a)
+    a = 1.0*a/a.sum()
+    running_sum = 0
+    i = -1
+    while r > running_sum:
+        i += 1
+        running_sum += a[i]
+    return i
+    
