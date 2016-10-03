@@ -1,6 +1,7 @@
 # prime_numbers.py
 import fractions
 from math import sqrt
+from operator import mul
 import numpy as np
 from collections import defaultdict
 
@@ -38,7 +39,7 @@ def primesfrom2to(n):
             k = 3 * i + 1 | 1
             sieve[      ((k*k)/3)      ::2*k] = False
             sieve[(k*k+4*k-2*k*(i&1))/3::2*k] = False
-    return np.r_[2, 3, ((3*np.nonzero(sieve)[0]+1) | 1)]
+    return map(int, np.r_[2, 3, ((3*np.nonzero(sieve)[0]+1) | 1)])
 
 
 def primal_decomposition(n, prime_cache=None):
@@ -49,13 +50,12 @@ def primal_decomposition(n, prime_cache=None):
     if prime_cache is None:
         primes = primesfrom2to(int(n/2) + 2)
     else:
-        primes = prime_cache
+        primes = sorted(prime_cache)
 
     for p in primes:
-        # if using a prime cache, I can stop after int(n/2)
-        #if p > int(original_n/2)+1:
-        #    break
-        # nope, can't assume they are sorted
+        # if using a prime cache, I can stop after int(n/2) assuming the cache is sorted
+        if p > int(original_n/2)+1:
+            break
 
         count = 0
         while n % p == 0:
@@ -88,12 +88,19 @@ def all_divisors(n):
             yield d2
 
 
-def all_prime_divisors(n):
-    primes = set(primesfrom2to(n + 1)) # this is shitty. I need to really only check if n is a prime, not primes between n/2 and n.
+def all_prime_divisors(n, prime_cache=None):
+    if prime_cache is None:
+        primes = set(primesfrom2to(n + 1))
+    else:
+        primes = set(prime_cache)
     for d in all_divisors(n):
         if d in primes:
             yield d
 
+def radical(n, prime_cache=None):
+    if n == 1:
+        return 1
+    return reduce(mul, all_prime_divisors(n, prime_cache))
 
 def divisor_0(n, prime_cache=None):
     decomp = primal_decomposition(n, prime_cache)
@@ -112,6 +119,7 @@ def divisor_k(n, k, prime_cache=None):
         product *= (p**(k*a + k) - 1) / (p**k-1)
     return product
 
+
 def divisor_k_lookup(up_to, k):
     """
     Creates a cache for looking up divisor_k.
@@ -125,13 +133,51 @@ def divisor_k_lookup(up_to, k):
     return div
 
 
-def totient_function(n):
-    product = n
-    for p in all_prime_divisors(n):
-        product *= (1 - 1./p)
-    return int(round(product))
-
 
 def coprime(m, n):
     return fractions.gcd(m, n) == 1
 
+
+def xgcd(a,b):
+    """Extended GCD:
+    Returns (gcd, x, y) where gcd is the greatest common divisor of a and b
+    with the sign of b if b is nonzero, and with the sign of a if b is 0.
+    The numbers x,y are such that gcd = ax+by."""
+    prevx, x = 1, 0;  prevy, y = 0, 1
+    while b:
+        q, r = divmod(a,b)
+        x, prevx = prevx - q*x, x  
+        y, prevy = prevy - q*y, y
+        a, b = b, r
+    return a, prevx, prevy
+
+
+def modular_multiplicate_inverse(n, p):
+    # solves n*x = 1 mod(p)
+    # ex: 3*x = 1 mod 5 return x = 2
+    sol = xgcd(n, p)[1]
+    if sol < 0:
+        return p + sol
+    else:
+        return sol
+
+def chinese_remainder_solver(input):
+    """
+    Finds the unique solution to
+    x = a1 mod(m1)
+    x = a2 mod(m2)
+    ...
+    x = an mod(mn)
+    
+    where m1,m2,.. are pairwise coprime
+
+    input is a list of the form [(a1, m1), (a2, m2), ...]
+    returns x, lcm(m1,m2,...)
+    """
+    def binary_chinese_remainder_solver((a1, m1), (a2, m2)):
+        (_gcd, n1, n2) = xgcd(m1, m2)
+        assert _gcd == 1, "m1 and m2 should be coprime (gcd == 1)"
+        return (a1*n2*m2 + a2*m1*n1, m1*m2)
+
+    sol, lcm = reduce(binary_chinese_remainder_solver, input)
+    return sol % lcm, lcm

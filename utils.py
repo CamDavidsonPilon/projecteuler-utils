@@ -10,8 +10,16 @@ BILLION = 1000000000
 PHI = 0.5 + 0.5 * np.sqrt(5)
 
 
+def is_square(x):
+    return is_int(math.sqrt(x))
+
+
 def is_int(x):
     return int(x) == x
+
+
+def digital_root(x):
+    return int(x - 9*int((x-1)/9))
 
 
 def powerset(iterable):
@@ -67,6 +75,8 @@ def promote_digits(digits):
 def digits(n):
     return map(int, str(n))
 
+def to_digit(array):
+    return sum(10**(len(array) - i - 1)*int(array[i]) for i in range(len(array)))
 
 def nCr(n, r):
     if r > n:
@@ -186,4 +196,104 @@ def random_choice_from_dist(a):
         i += 1
         running_sum += a[i]
     return i
-    
+
+
+def decreasing_elements(array, M, max_length):
+    """
+    Replaces code like
+
+        M = 20
+
+        for a1 in xrange(M, 0, -1):
+            for a2 in xrange(a1, 0, -1):
+                for a3 in xrange(a2, 0, -1):
+                    for a4 in xrange(a3, 0, -1):
+                        yield (a1,a2,a3,a4)
+
+    with
+
+        decreasing_elements([], M, 4)
+
+    """
+    if len(array) == max_length:
+        yield array
+    else:
+        for x in range(M+1):
+            for _array in decreasing_elements(array + [x], x, max_length): 
+                yield _array
+
+
+def flatmap(func, iterable):
+    return chain.from_iterable((func(x) for x in iterable))
+
+
+def continued_fraction_expansion(x, tol=10e-8):
+    # this is breaking due to precision errors. If determine sqrt, use
+    # sqrt_continued_fraction_expansion
+    while abs(x - int(x)) > tol:
+        yield int(x)
+        x = 1./(x - int(x))
+
+
+def sqrt_continued_fraction_expansion(n):
+    """
+    determines the continued fraction expansion of sqrt(n)
+    """
+    m = 0.
+    d = 1.
+    a0 = a = int(math.sqrt(n))
+    yield a
+    while True:
+        m = d*a - m
+        d = (n - m**2) / d
+        a = int((a0 + m)/d)
+        print (m,d,a)
+        yield a
+
+
+def continued_fraction_convergents(x):
+    # https://en.wikipedia.org/wiki/Continued_fraction#Infinite_continued_fractions
+    hn_1, hn_2 = 1, 0
+    kn_1, kn_2 = 0, 1
+
+    for an in continued_fraction_expansion(x):
+        hn = an*hn_1 + hn_2
+        kn = an*kn_1 + kn_2
+        yield (hn, kn)
+
+        hn_1, hn_2 = hn, hn_1
+        kn_1, kn_2 = kn, kn_1
+
+
+def sqrt_continued_fraction_convergents(n):
+    hn_1, hn_2 = 1, 0
+    kn_1, kn_2 = 0, 1
+
+    for an in sqrt_continued_fraction_expansion(n):
+        hn = an*hn_1 + hn_2
+        kn = an*kn_1 + kn_2
+        yield (hn, kn)
+
+        hn_1, hn_2 = hn, hn_1
+        kn_1, kn_2 = kn, kn_1
+
+
+def sqrt_continued_fraction_to_decimal_expansion(n):
+    hn_1, hn_2 = 1, 0
+    kn_1, kn_2 = 0, 1
+
+    for an in sqrt_continued_fraction_expansion(n):
+        hn = an*hn_1 + hn_2
+        kn = an*kn_1 + kn_2
+        if kn_1 > 0 and hn/kn == hn_1/kn_1:
+            d = hn/kn
+            yield d
+
+            hn -= d*kn
+            hn *= 10
+
+            hn_1 -= d*kn_1
+            hn_1 *= 10
+
+        hn_1, hn_2 = hn, hn_1
+        kn_1, kn_2 = kn, kn_1
