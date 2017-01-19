@@ -1,7 +1,7 @@
 import collections
 import functools
 import numpy as np
-from itertools import chain, combinations
+from itertools import chain, combinations, imap, count
 import math
 import random
 
@@ -15,6 +15,8 @@ def is_square(x):
 
 
 def is_int(x):
+    if math.isnan(x):
+        return False
     return int(x) == x
 
 
@@ -75,15 +77,17 @@ def promote_digits(digits):
 def digits(n):
     return map(int, str(n))
 
+
 def to_digit(array):
     return sum(10**(len(array) - i - 1)*int(array[i]) for i in range(len(array)))
+
 
 def nCr(n, r):
     if r > n:
         return 0
     if r < 0 or n < 0:
         return 0
-    
+
     f = math.factorial
     return f(n) / f(r) / f(n-r)
 
@@ -137,7 +141,7 @@ class Fibonacci():
 
     def index(self, n):
         v = np.log(n * np.sqrt(5) + 0.5)/np.log(PHI)
-         # for large values the above becomes unstable
+        # for large values the above becomes unstable
         if abs(v - np.round(v)) < 1e-8:
             return int(np.round(v))
         else:
@@ -219,11 +223,11 @@ def decreasing_elements(array, M, max_length):
         yield array
     else:
         for x in range(M+1):
-            for _array in decreasing_elements(array + [x], x, max_length): 
+            for _array in decreasing_elements(array + [x], x, max_length):
                 yield _array
 
 
-def flatmap(func, iterable):
+def iflatmap(func, iterable):
     return chain.from_iterable((func(x) for x in iterable))
 
 
@@ -247,7 +251,7 @@ def sqrt_continued_fraction_expansion(n):
         m = d*a - m
         d = (n - m**2) / d
         a = int((a0 + m)/d)
-        print (m,d,a)
+        print (m, d, a)
         yield a
 
 
@@ -297,3 +301,53 @@ def sqrt_continued_fraction_to_decimal_expansion(n):
 
         hn_1, hn_2 = hn, hn_1
         kn_1, kn_2 = kn, kn_1
+
+
+def polygonal_iterator(d):
+
+    if d == 3:
+        f = lambda n: n*(n+1)/2
+    elif d == 4:
+        f = lambda n: n**2
+    elif d == 5:
+        f = lambda n: n*(3*n-1)/2
+    elif d == 6:
+        f = lambda n: n*(2*n-1)
+    elif d == 7:
+        f = lambda n: n*(5*n-3)/2
+    elif d == 8:
+        f = lambda n: n*(3*n-2)
+    else:
+        raise ValueError("no function for %d" % d)
+    return imap(f, count(start=1))
+
+
+# http://stackoverflow.com/questions/16344284/how-to-generate-a-list-of-palindrome-numbers-within-a-given-range
+def palindrome_number_generator():
+    yield 0  
+    lower = 1
+    while True:
+        higher = lower*10
+        for i in xrange(lower, higher):    
+            s = str(i)
+            yield int(s+s[-2::-1])
+        for i in xrange(lower, higher):    
+            s = str(i)
+            yield int(s+s[::-1])
+        lower = higher
+
+
+def palindromes(lower, upper):
+    all_palindrome_numbers = palindrome_number_generator()
+    for p in all_palindrome_numbers:
+        if p >= lower:
+            break
+    palindrome_list = [p]
+    for p in all_palindrome_numbers:
+        # Because we use the same generator object,
+        # p continues where the previous loop halted.
+        if p >= upper:
+            break
+        palindrome_list.append(p)
+    return palindrome_list
+

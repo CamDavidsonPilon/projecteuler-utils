@@ -6,6 +6,7 @@ import numpy as np
 from collections import defaultdict
 
 
+
 def eratosthenes(limit):
     # naive and slow, use primesfrom2to
     numbers_up_to_limit, still_valid = range(2, limit+1), [True]*(limit-1)
@@ -90,17 +91,17 @@ def all_divisors(n):
 
 def all_prime_divisors(n, prime_cache=None):
     if prime_cache is None:
-        primes = set(primesfrom2to(n + 1))
-    else:
-        primes = set(prime_cache)
-    for d in all_divisors(n):
-        if d in primes:
-            yield d
+        prime_cache = primesfrom2to(n + 1)
+    for p in prime_cache:
+        if n % p == 0:
+            yield p
+
 
 def radical(n, prime_cache=None):
     if n == 1:
         return 1
     return reduce(mul, all_prime_divisors(n, prime_cache))
+
 
 def divisor_0(n, prime_cache=None):
     decomp = primal_decomposition(n, prime_cache)
@@ -123,61 +124,40 @@ def divisor_k(n, k, prime_cache=None):
 def divisor_k_lookup(up_to, k):
     """
     Creates a cache for looking up divisor_k.
-    Uses an efficient algorithm to create this. 
+    Uses an n**2 algorithm to create this.
     """
-    div = defaultdict(lambda: 0)
-    for i in xrange(1, up_to):
+    div = defaultdict(lambda: 1)
+    div[1] = 1
+
+    for i in xrange(2, up_to):
         for j in xrange(i, up_to, i):
             div[j] += i**k
 
     return div
 
 
-
 def coprime(m, n):
     return fractions.gcd(m, n) == 1
 
 
-def xgcd(a,b):
-    """Extended GCD:
-    Returns (gcd, x, y) where gcd is the greatest common divisor of a and b
-    with the sign of b if b is nonzero, and with the sign of a if b is 0.
-    The numbers x,y are such that gcd = ax+by."""
-    prevx, x = 1, 0;  prevy, y = 0, 1
-    while b:
-        q, r = divmod(a,b)
-        x, prevx = prevx - q*x, x  
-        y, prevy = prevy - q*y, y
-        a, b = b, r
-    return a, prevx, prevy
-
-
-def modular_multiplicate_inverse(n, p):
-    # solves n*x = 1 mod(p)
-    # ex: 3*x = 1 mod 5 return x = 2
-    sol = xgcd(n, p)[1]
-    if sol < 0:
-        return p + sol
-    else:
-        return sol
-
-def chinese_remainder_solver(input):
+def divisors(factors):
     """
-    Finds the unique solution to
-    x = a1 mod(m1)
-    x = a2 mod(m2)
-    ...
-    x = an mod(mn)
-    
-    where m1,m2,.. are pairwise coprime
-
-    input is a list of the form [(a1, m1), (a2, m2), ...]
-    returns x, lcm(m1,m2,...)
+    Generates all divisors, unordered, from the prime factorization.
+    From https://numericalrecipes.wordpress.com/2009/05/13/divisors/
     """
-    def binary_chinese_remainder_solver((a1, m1), (a2, m2)):
-        (_gcd, n1, n2) = xgcd(m1, m2)
-        assert _gcd == 1, "m1 and m2 should be coprime (gcd == 1)"
-        return (a1*n2*m2 + a2*m1*n1, m1*m2)
+    ps = sorted(set(factors))
+    omega = len(ps)
 
-    sol, lcm = reduce(binary_chinese_remainder_solver, input)
-    return sol % lcm, lcm
+    def rec_gen(n=0):
+        if n == omega:
+            yield 1
+        else:
+            pows = [1]
+            for j in xrange(factors.count(ps[n])):
+                pows += [pows[-1] * ps[n]]
+            for q in rec_gen(n + 1):
+                for p in pows:
+                    yield p * q
+
+    for p in rec_gen():
+        yield p
