@@ -2,8 +2,9 @@ from fractions import gcd
 from collections import defaultdict
 import math
 from itertools import count
+import numpy as np
 from prime_numbers import coprime, all_prime_divisors, primesfrom2to
-from utils import infinite_product
+from utils import infinite_product, PHI, is_int, fast_2matrix_expon_mod_m
 
 
 def pythagorean_triples():
@@ -178,12 +179,13 @@ def chinese_remainder_solver(input):
     return sol % lcm, lcm
 
 
-
 def linear_congruence_solver(a, b, m):
-
+    """
+    solves ax = b mod m
+    """
     def solutions(sol_mod_m, m):
         while True:
-            yield sol_mod_m 
+            yield sol_mod_m
             sol_mod_m += m
 
     g = gcd(a, m)
@@ -194,3 +196,155 @@ def linear_congruence_solver(a, b, m):
         return linear_congruence_solver(a/g, b/g, m/g)
     else:
         return iter([])
+
+
+class Fibonacci():
+
+    def __init__(self):
+        self._cache = {}
+        self._n = 0
+        self._fib_generator = self.fib_generator()
+
+    def fib(self, k):
+        if k in self._cache:
+            return self._cache[k]
+
+        for fib in self._fib_generator:
+            self._n += 1
+            self._cache[self._n] = fib
+
+            if self._n == k:
+                break
+
+        return fib
+
+    @staticmethod
+    def fib_generator():
+        yield 1
+        yield 1
+
+        fib_1 = fib_2 = 1
+
+        while True:
+            fib = fib_1 + fib_2
+            yield fib
+
+            fib_2 = fib_1
+            fib_1 = fib
+
+    @staticmethod
+    def fib_pair_generator():
+        yield (1, 1)
+
+        fib_1 = fib_2 = 1
+
+        while True:
+            fib = fib_1 + fib_2
+            yield (fib_1, fib)
+
+            fib_2 = fib_1
+            fib_1 = fib
+
+    def index(self, n):
+        v = np.log(n * np.sqrt(5) + 0.5)/np.log(PHI)
+        # for large values the above becomes unstable
+        if abs(v - np.round(v)) < 1e-8:
+            return int(np.round(v))
+        else:
+            return int(np.floor(v))
+
+    def find_largest_fib_below_n(self, n):
+        return self.fib(self.index(n))
+
+    def zeckendorf(self, n):
+        if n == 0:
+            return []
+        else:
+            largest_fib_below_n = self.find_largest_fib_below_n(n)
+            return [largest_fib_below_n] + self.zeckendorf(n - largest_fib_below_n)
+
+    def zeckendorf_digit(self, n):
+        base = ['0'] * (self.index(n) - 1)
+        zeckendorf_fibs = self.zeckendorf(n)
+        for fib in zeckendorf_fibs:
+            base[self.index(n) - self.index(fib)] = '1'
+        return ''.join(base)
+
+    def zeckendorf_digit_to_decimal(self, z):
+        running_sum = 0
+        for i, char in enumerate(reversed(z), start=1):
+            if char == '1':
+                running_sum += self.fib(i+1)
+        return running_sum
+
+    def fib_mod_m(self, k, mod):
+        """
+        Can compute arbitrarily large Fib numbers, mod m, using
+        fast matrix multiplication. Backed by a cache too.
+        """
+        FIBMATRIX = ((1, 1), (1, 0))
+        return fast_2matrix_expon_mod_m(FIBMATRIX, k, mod)[0][1]
+
+
+def linear_diophantine_solver(a, b, c, lb, ub):
+    """
+    ## untested
+    solves a*x + b*y = c for (x,y) integer in the range min <= x, y <= max
+    """
+
+    class NoSolution(Exception):
+        pass
+
+    assert is_int(a)
+    assert is_int(b)
+    assert is_int(c)
+
+    if c % gcd(a, b) != 0:
+        raise NoSolution()
+
+    # find a single solution
+    x = lb
+
+    while True:
+        if (a*x + c) % b == 0:  # is an integer
+            y = (a*x + c) / b
+            break
+        x += 1
+
+    u, v = a / gcd(a, b), b / gcd(a, b)
+    k = 0
+
+    while (lb <= x + k*v <= ub) and (lb <= y - k*u <= ub):
+        yield (x + k*v, y - k*u)
+        k += 1
+
+
+def diophantine_count(a, n):
+    # from https://math.stackexchange.com/questions/30638/count-the-number-of-positive-solutions-for-a-linear-diophantine-equation
+    """Computes the number of nonnegative solutions (x) of the linear
+    Diophantine equation
+        a[0] * x[0] + ... a[N-1] * x[N-1] = n
+
+    Theory: For natural numbers a[0], a[2], ..., a[N - 1], n, and j,
+    let p(a, n, j) be the number of nonnegative solutions.
+
+    Then one has:
+        p(a, m, j) = sum p(a[1:], m - k * a[0], j - 1), where the sum is taken
+        over 0 <= k <= floor(m // a[0])
+
+    Examples
+    --------
+    >>> diophantine_count([3, 2, 1, 1], 47)
+    3572
+    >>> diophantine_count([3, 2, 1, 1], 40)
+    2282
+    """
+
+    def p(a, m, j):
+        if j == 0:
+            return int(m == 0)
+        else:
+            return sum([p(a[1:], m - k * a[0], j - 1)
+                        for k in xrange(1 + m // a[0])])
+
+    return p(a, n, len(a))

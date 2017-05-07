@@ -94,7 +94,10 @@ def all_prime_divisors(n, prime_cache=None):
         prime_cache = primesfrom2to(n + 1)
     for p in prime_cache:
         if n % p == 0:
+            n = n / p
             yield p
+        if n == 1:
+            raise StopIteration()
 
 
 def radical(n, prime_cache=None):

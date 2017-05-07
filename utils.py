@@ -1,9 +1,10 @@
 import collections
 import functools
-import numpy as np
 from itertools import chain, combinations, imap, count
 import math
+from fractions import gcd
 import random
+import numpy as np
 
 MILLION = 1000000
 BILLION = 1000000000
@@ -78,6 +79,16 @@ def digits(n):
     return map(int, str(n))
 
 
+def reverse_number(n):
+    reversed_n = 0
+    power = int(np.log10(n))
+    while power >= 0:
+        n, r = divmod(n, 10)
+        reversed_n += r * 10 ** power
+        power -= 1
+    return reversed_n
+
+
 def to_digit(array):
     return sum(10**(len(array) - i - 1)*int(array[i]) for i in range(len(array)))
 
@@ -90,86 +101,6 @@ def nCr(n, r):
 
     f = math.factorial
     return f(n) / f(r) / f(n-r)
-
-
-class Fibonacci():
-
-    def __init__(self):
-        self._cache = {}
-        self._n = 0
-        self._fib_generator = self.fib_generator()
-
-    def fib(self, k):
-        if k in self._cache:
-            return self._cache[k]
-
-        for fib in self._fib_generator:
-            self._n += 1
-            self._cache[self._n] = fib
-
-            if self._n == k:
-                break
-
-        return fib
-
-    @staticmethod
-    def fib_generator():
-        yield 1
-        yield 1
-
-        fib_1 = fib_2 = 1
-
-        while True:
-            fib = fib_1 + fib_2
-            yield fib
-
-            fib_2 = fib_1
-            fib_1 = fib
-
-    @staticmethod
-    def fib_pair_generator():
-        yield (1, 1)
-
-        fib_1 = fib_2 = 1
-
-        while True:
-            fib = fib_1 + fib_2
-            yield (fib_1, fib)
-
-            fib_2 = fib_1
-            fib_1 = fib
-
-    def index(self, n):
-        v = np.log(n * np.sqrt(5) + 0.5)/np.log(PHI)
-        # for large values the above becomes unstable
-        if abs(v - np.round(v)) < 1e-8:
-            return int(np.round(v))
-        else:
-            return int(np.floor(v))
-
-    def find_largest_fib_below_n(self, n):
-        return self.fib(self.index(n))
-
-    def zeckendorf(self, n):
-        if n == 0:
-            return []
-        else:
-            largest_fib_below_n = self.find_largest_fib_below_n(n)
-            return [largest_fib_below_n] + self.zeckendorf(n - largest_fib_below_n)
-
-    def zeckendorf_digit(self, n):
-        base = ['0'] * (self.index(n) - 1)
-        zeckendorf_fibs = self.zeckendorf(n)
-        for fib in zeckendorf_fibs:
-            base[self.index(n) - self.index(fib)] = '1'
-        return ''.join(base)
-
-    def zeckendorf_digit_to_decimal(self, z):
-        running_sum = 0
-        for i, char in enumerate(reversed(z), start=1):
-            if char == '1':
-                running_sum += self.fib(i+1)
-        return running_sum
 
 
 def infinite_product(iterx, itery):
@@ -241,7 +172,10 @@ def continued_fraction_expansion(x, tol=10e-8):
 
 def sqrt_continued_fraction_expansion(n):
     """
-    determines the continued fraction expansion of sqrt(n)
+    determines the continued fraction expansion of sqrt(n),
+    that is, return ai s.t.
+
+    a1 + 1/(a2 + 1/(a3 + 1/(....))) == sqrt(n)
     """
     m = 0.
     d = 1.
@@ -251,12 +185,17 @@ def sqrt_continued_fraction_expansion(n):
         m = d*a - m
         d = (n - m**2) / d
         a = int((a0 + m)/d)
-        print (m, d, a)
         yield a
 
 
 def continued_fraction_convergents(x):
-    # https://en.wikipedia.org/wiki/Continued_fraction#Infinite_continued_fractions
+    """
+    https://en.wikipedia.org/wiki/Continued_fraction#Infinite_continued_fractions_and_convergents
+
+    returns the values
+    a1, a1 + 1/a2, a1 + 1/(a2 + (1/a3)), ... ==  x
+
+    """
     hn_1, hn_2 = 1, 0
     kn_1, kn_2 = 0, 1
 
@@ -270,6 +209,13 @@ def continued_fraction_convergents(x):
 
 
 def sqrt_continued_fraction_convergents(n):
+    """
+    https://en.wikipedia.org/wiki/Continued_fraction#Infinite_continued_fractions_and_convergents
+
+    returns the values
+    a1, a1 + 1/a2, a1 + 1/(a2 + (1/a3)), ... ==  sqrt(n)
+
+    """
     hn_1, hn_2 = 1, 0
     kn_1, kn_2 = 0, 1
 
@@ -324,14 +270,14 @@ def polygonal_iterator(d):
 
 # http://stackoverflow.com/questions/16344284/how-to-generate-a-list-of-palindrome-numbers-within-a-given-range
 def palindrome_number_generator():
-    yield 0  
+    yield 0
     lower = 1
     while True:
         higher = lower*10
-        for i in xrange(lower, higher):    
+        for i in xrange(lower, higher):
             s = str(i)
             yield int(s+s[-2::-1])
-        for i in xrange(lower, higher):    
+        for i in xrange(lower, higher):
             s = str(i)
             yield int(s+s[::-1])
         lower = higher
@@ -351,3 +297,65 @@ def palindromes(lower, upper):
         palindrome_list.append(p)
     return palindrome_list
 
+
+def is_terminating(num, denom):
+    if gcd(num, denom) != 1:
+        denom = denom/gcd(num, denom)
+
+    while denom % 5 == 0:
+        denom = denom / 5
+    while denom % 2 == 0:
+        denom = denom / 2
+    return denom == 1
+
+
+def fast_expon_mod_m(x, n, m):
+    if n == 1:
+        return x
+    elif n == 0:
+        return 1
+    elif n % 2 == 0:
+        return fast_expon_mod_m(x * x % m, n / 2, m)
+    elif n % 2 == 1:
+        return x * fast_expon_mod_m(x * x % m, (n - 1) / 2, m) % m
+
+
+def fast_matrix_expon_mod_m(M, n, m):
+    """
+    Compute M**n mod m for square numpy matrix/vector M
+
+    """
+    if n == 0:
+        return np.eye(M.shape[0], dtype=int)
+    if n % 2 == 1:
+        return (M.dot(fast_matrix_expon_mod_m(M, n-1, m))) % m
+    else:
+        D = fast_matrix_expon_mod_m(M, n/2, m)
+        return (D.dot(D)) % m
+
+
+@memoized
+def fast_2matrix_expon_mod_m(M, n, m):
+    """
+    Compute M**n mod m for square (2x2) list of lists
+
+    """
+    def matrix_mul(
+                   ((a11, a12), (a21, a22)),
+                   ((b11, b12), (b21, b22)),
+                  ):
+        return (
+               (a11*b11 + a12*b21, a11*b12 + a12*b22),
+               (a21*b11 + a22*b21, a21*b12 + a22*b22)
+               )
+
+    def matrix_mod(((a11, a12), (a21, a22)), m):
+        return ((a11 % m, a12 % m), (a21 % m, a22 % m))
+
+    if n == 0:
+        return ((1, 0), (0, 1))
+    if n % 2 == 1:
+        return matrix_mod(matrix_mul(M, fast_2matrix_expon_mod_m(M, n-1, m)), m)
+    else:
+        D = fast_2matrix_expon_mod_m(M, n/2, m)
+        return matrix_mod(matrix_mul(D, D), m)

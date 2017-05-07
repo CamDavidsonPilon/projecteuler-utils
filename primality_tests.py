@@ -1,7 +1,7 @@
 # from https://rosettacode.org/wiki/Miller%E2%80%93Rabin_primality_test#Python
 import random
 
-_mrpt_num_trials = 10 # number of bases to test
+_mrpt_num_trials = 5 # number of bases to test
 
 
 def is_probably_prime(n):
@@ -44,7 +44,8 @@ def is_probably_prime(n):
 851573147596390153)
     False
     """
-    assert n >= 2
+    if n == 1:
+        return False
     # special case 2
     if n == 2:
         return True
