@@ -143,7 +143,8 @@ def xgcd(a, b):
         x, prevx = prevx - q*x, x
         y, prevy = prevy - q*y, y
         a, b = b, r
-    return a, prevx, prevy
+    gcd_ = a
+    return gcd_, prevx, prevy
 
 
 def modular_multiplicate_inverse(n, p):
@@ -286,37 +287,26 @@ class Fibonacci():
         return fast_2matrix_expon_mod_m(FIBMATRIX, k, mod)[0][1]
 
 
-def linear_diophantine_solver(a, b, c, lb, ub):
+def linear_diophantine_solver(a, b, c):
     """
-    ## untested
-    solves a*x + b*y = c for (x,y) integer in the range min <= x, y <= max
+    solves a*x + b*y = c for (x,y)
+    If a single solution exists, then an infinite number of solutions exists, indexed
+    by an integer k. This functions returns a _function_ that accepts k
     """
 
     class NoSolution(Exception):
         pass
 
-    assert is_int(a)
-    assert is_int(b)
-    assert is_int(c)
-
     if c % gcd(a, b) != 0:
         raise NoSolution()
 
-    # find a single solution
-    x = lb
+    # find single solution
+    gcd_, x, y = xgcd(a, b)
+    x = x * abs(c)
+    y = y * abs(c)
 
-    while True:
-        if (a*x + c) % b == 0:  # is an integer
-            y = (a*x + c) / b
-            break
-        x += 1
-
-    u, v = a / gcd(a, b), b / gcd(a, b)
-    k = 0
-
-    while (lb <= x + k*v <= ub) and (lb <= y - k*u <= ub):
-        yield (x + k*v, y - k*u)
-        k += 1
+    u, v = a / gcd_, b / gcd_
+    return lambda k: (x + k * v, y - k * u)
 
 
 def diophantine_count(a, n):

@@ -4,6 +4,8 @@ from math import sqrt
 from operator import mul
 import numpy as np
 from collections import defaultdict
+from primality_tests import is_probably_prime
+from utils import product
 
 
 
@@ -51,7 +53,7 @@ def primal_decomposition(n, prime_cache=None):
     if prime_cache is None:
         primes = primesfrom2to(int(n/2) + 2)
     else:
-        primes = sorted(prime_cache)
+        primes = prime_cache
 
     for p in primes:
         # if using a prime cache, I can stop after int(n/2) assuming the cache is sorted
@@ -76,11 +78,18 @@ def primal_decomposition(n, prime_cache=None):
 
 
 def pair_divisors(n):
+    """
+    This can be done faster. I don't _need_ to check all the numbers below sqrt(n) in some cases
+    like 2^60 - 1 = 3^2 * 5^2 * 7 * 11 * 13 * 31 * 41 * 61 * 151 * 331 * 1321
+
+    """
+    primes_that_factor_into_n = []
+    max_power_of_prime = 1
+
     yield (1, n)
     for i in xrange(2, int(sqrt(n))+1):
         if n % i == 0:
             yield (i, n/i)
-
 
 def all_divisors(n):
     for d1, d2 in pair_divisors(n):

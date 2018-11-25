@@ -2,6 +2,7 @@ import collections
 import functools
 from itertools import chain, combinations, imap, count
 import math
+from operator import mul
 from fractions import gcd
 import random
 import numpy as np
@@ -9,6 +10,10 @@ import numpy as np
 MILLION = 1000000
 BILLION = 1000000000
 PHI = 0.5 + 0.5 * np.sqrt(5)
+
+
+def product(list):
+    return functools.reduce(mul, list, 1)
 
 
 def is_square(x):
